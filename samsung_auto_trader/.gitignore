@@ -1,0 +1,21 @@
+# Secrets & credentials
+.env
+
+# Token cache
+token_cache.json
+
+# Order count cache
+order_cache.json
+
+# Logs
+logs/
+
+# Python bytecode
+__pycache__/
+*.pyc
+*.pyo
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
