@@ -89,12 +89,17 @@ class AutoTrader:
             return
 
         self.logger.info("📅 [영업일] 오늘은 거래일입니다. 장 시작 시간까지 대기합니다...")
-        if not self._wait_for_trading_window():
+        wait_result = self._wait_for_trading_window()
+        if wait_result == "stopped":
             self.logger.info("🛑 [중단 안내] 대기 중에 종료 요청을 받아 시스템을 끕니다.")
             self._close_trading_day()
             return
+        elif wait_result == "after_hours":
+            self.logger.info("🌙 [장 마감 후] 이미 오늘 장이 마감된 시간입니다. 내일 장 시작 전에 다시 실행해 주세요.")
+            return
 
         self.logger.info("🔔 [장 시작] 본격적으로 자동매매 트레이딩 루프를 시작합니다!")
+        self._traded_today = True
         try:
             self._run_trading_loop()
         except KeyboardInterrupt:
@@ -120,13 +125,23 @@ class AutoTrader:
             
         return True
 
-    def _wait_for_trading_window(self) -> bool:
+    def _wait_for_trading_window(self) -> str:
         """현재 시각이 TRADING_START 전이면 시작 시각까지 대기.
-        정상적으로 대기를 마쳤으면 True, 대기 중 종료 요청 시 False 반환."""
+        
+        Returns:
+            "ready"       — 장 시간 내, 트레이딩 시작 가능
+            "after_hours" — 이미 장이 마감된 시간
+            "stopped"     — 대기 중 사용자 종료 요청
+        """
+        # 이미 장 마감 시간이 지난 경우 (장 마감 후 실행)
+        now = config.get_now().time()
+        if now >= config.TRADING_CLOSE:
+            return "after_hours"
+
         while not self.stop_event.is_set():
             now = config.get_now().time()
             if now >= config.TRADING_START:
-                return True
+                return "ready"
             # 남은 시간 계산 (초 단위)
             now_dt = datetime.combine(config.get_now().date(), now)
             start_dt = datetime.combine(config.get_now().date(), config.TRADING_START)
@@ -136,7 +151,7 @@ class AutoTrader:
             )
             # 최대 30초 단위로 대기
             self.stop_event.wait(min(remaining, 30))
-        return False
+        return "stopped"
 
     # ------------------------------------------------------------------
     # Core loop
@@ -450,7 +465,16 @@ class AutoTrader:
     # ------------------------------------------------------------------
 
     def _close_trading_day(self) -> None:
-        """장 마감 처리 — 미체결 주문 일괄 취소 & 일일 요약"""
+        """장 마감 처리 — 미체결 주문 일괄 취소 & 일일 요약
+        
+        장 중에 트레이딩을 실제로 수행한 경우에만 API를 호출합니다.
+        장 마감 후 실행하여 바로 종료된 경우에는 불필요한 API 호출을 하지 않습니다.
+        """
+        # 실제로 트레이딩 루프를 돌지 않았으면 API 호출 없이 종료
+        if not getattr(self, '_traded_today', False):
+            self.logger.info("ℹ️ [안내] 오늘 트레이딩을 수행하지 않았으므로 장 마감 처리를 건너뜁니다.")
+            return
+
         self.logger.info("=" * 60)
         self.logger.info("🏁 [장 마감] 정규장 마감 처리를 시작합니다.")
 
