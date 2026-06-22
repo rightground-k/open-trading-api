@@ -98,6 +98,20 @@ venv.bak/
 # ===== uv =====
 .python-version
 
+# ===== Project-specific =====
+# Secrets & credentials
+.env
+token_cache.json
+order_cache.json
+
+# Logs
+logs/
+
+# IDE / editor
+.vscode/
+.idea/
+*.swp
+
 # ===== Type checkers =====
 .mypy_cache/
 .dmypy.json
