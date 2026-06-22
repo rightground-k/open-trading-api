@@ -192,7 +192,7 @@ def get_orderable_cash(token_manager: TokenManager) -> dict:
     params = {
         "CANO": KIS_ACCOUNT,
         "ACNT_PRDT_CD": KIS_ACCOUNT_PROD,
-        "PDNO": STOCK_CODE,
+        "PDNO": "",  # 종목코드 생략 시 계좌 전체 기준 최대주문가능액 산출
         "ORD_UNPR": "",
         "ORD_DVSN": "00",
         "CMA_EVLU_AMT_ICLD_YN": "N",
