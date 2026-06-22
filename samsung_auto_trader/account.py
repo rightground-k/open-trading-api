@@ -208,11 +208,29 @@ def get_orderable_cash(token_manager: TokenManager) -> dict:
         )
 
         if data.get("rt_cd") != "0":
+            msg_cd = data.get("msg_cd", "UNKNOWN")
+            msg1 = data.get("msg1", "No message")
+            logger.error(
+                "[account] Orderable cash API error — rt_cd=%s, msg_cd=%s, msg1=%s",
+                data.get("rt_cd"), msg_cd, msg1,
+            )
+            return empty_res
+
+        output = data.get("output") or data.get("output1") or []
+        if isinstance(output, dict):
+            output_item = output
+        elif isinstance(output, list) and output:
+            output_item = output[0]
+        else:
+            logger.debug(
+                "[account] Orderable cash response missing output: %s",
+                data,
+            )
             return empty_res
 
         return {
-            "cash": int(output.get("ord_psbl_cash") or "0"),
-            "max_amt": int(output.get("max_buy_amt") or "0")
+            "cash": int(output_item.get("ord_psbl_cash") or "0"),
+            "max_amt": int(output_item.get("max_buy_amt") or "0")
         }
 
     except Exception as exc:

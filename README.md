@@ -1,6 +1,6 @@
 # 🤖 삼성전자 모의투자 자동매매 봇 (Samsung Auto Trader)
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![KIS Open API](https://img.shields.io/badge/KIS%20API-Mock%20Trading-success)](#)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](#)
 
@@ -23,7 +23,7 @@
 
 본 프로젝트는 유지보수성과 확장성을 고려하여 **객체지향 프로그래밍(OOP) 및 모듈화 설계**를 적용했습니다.
 
-루트 디렉토리는 패키지 메타데이터(`pyproject.toml`, `requirements.txt`)와 참고 자료(`reference_materials/`)를 포함하며, 실제 실행 로직은 `samsung_auto_trader/` 내부에 집중되어 있습니다.
+루트 디렉토리는 패키지 메타데이터(`pyproject.toml`)와 참고 자료(`reference_materials/`)를 포함하며, 실제 실행 로직은 `samsung_auto_trader/` 내부에 집중되어 있습니다.
 
 ### 구조도 (Directory & Modules)
 ```text
@@ -47,20 +47,20 @@ samsung_auto_trader/
 
 ## 🚀 사전 준비 및 설치 방법
 
-
 ### 1. KIS 모의투자 API 키 발급
 - [KIS Developers](https://apiportal.koreainvestment.com/) 접속 후 모의투자 서비스 신청
 - **AppKey** 와 **AppSecret** 발급, [한국투자증권](https://www.truefriend.com/) 계좌 개설
 
-### 2. 설치 및 실행
+### 2. 설치
 ```bash
-# 1. 프로젝트 폴더 진입
-cd samsung_auto_trader
+cd /workspaces/open-trading-api
+python -m pip install -e .
+```
 
-# 2. 의존성 패키지 설치
-pip install -r requirements.txt
+`pyproject.toml`에 정의된 의존성을 설치하며, `tzdata`를 포함한 패키지가 자동으로 함께 설치됩니다.
 
-# 3. 환경변수 파일 생성
+### 3. 환경변수 파일 생성 및 설정
+```bash
 cp .env.example .env
 ```
 
@@ -75,8 +75,9 @@ KIS_APPSECRET=your_mock_appsecret # 모의투자 AppSecret
 
 > **보안 알림**: `.env` 파일은 `.gitignore`에 등록되어 있어 깃허브 등 저장소에 절대 커밋되지 않습니다.
 
-### 3. 프로그램 실행
+### 4. 프로그램 실행
 ```bash
+cd samsung_auto_trader
 python main.py
 ```
 
@@ -111,26 +112,17 @@ python main.py
 
 ### 🌐 GitHub Codespaces에서 실행
 
-GitHub Codespaces 환경에서 한 번에 실행하는 방법입니다.
+Codespaces에서도 동일하게 아래 명령으로 진행하면 됩니다.
 
 ```bash
-# 1. 루트 디렉토리에서 프로젝트 전체 의존성 설치
 cd /workspaces/open-trading-api
-pip install -r requirements.txt
-
-# 2. samsung_auto_trader 모듈 의존성 설치
-cd samsung_auto_trader
-pip install -r requirements.txt
-
-# 3. 환경변수 파일 생성 및 설정
+python -m pip install -e .
 cp .env.example .env
-# .env 파일을 열어서 KIS_APPKEY, KIS_APPSECRET 등을 입력합니다.
-
-# 4. 프로그램 실행
+cd samsung_auto_trader
 python main.py
 ```
 
-> **팁**: 프로젝트를 설치한 후에는 다음에 접속할 때 **4번 단계(python main.py)**만 실행하면 됩니다. 의존성은 Codespaces 환경에 캐시됩니다.
+> **팁**: 한 번 설치한 뒤에는 다음 접속 시 `python main.py`만 실행하면 됩니다. Codespaces 환경에서는 의존성이 캐시되어 재설치가 필요 없는 경우가 많습니다.
 
 ---
 
