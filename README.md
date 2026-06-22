@@ -53,14 +53,15 @@ samsung_auto_trader/
 
 ### 2. 설치
 ```bash
-cd /workspaces/open-trading-api
-python -m pip install -e .
+cd /workspaces/open-trading-api/samsung_auto_trader
+python -m pip install -r requirements.txt
 ```
 
-`pyproject.toml`에 정의된 의존성을 설치하며, `tzdata`를 포함한 패키지가 자동으로 함께 설치됩니다.
+이 저장소는 실제로 `samsung_auto_trader/` 내부가 실행 대상입니다. 루트 디렉터리에서 `python -m pip install -e .` 대신, 하위 패키지 디렉터리에서 필요한 의존성을 설치하고 실행하세요.
 
 ### 3. 환경변수 파일 생성 및 설정
 ```bash
+cd /workspaces/open-trading-api/samsung_auto_trader
 cp .env.example .env
 ```
 
@@ -115,10 +116,9 @@ python main.py
 Codespaces에서도 동일하게 아래 명령으로 진행하면 됩니다.
 
 ```bash
-cd /workspaces/open-trading-api
-python -m pip install -e .
+cd /workspaces/open-trading-api/samsung_auto_trader
+python -m pip install -r requirements.txt
 cp .env.example .env
-cd samsung_auto_trader
 python main.py
 ```
 
