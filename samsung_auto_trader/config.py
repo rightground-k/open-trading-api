@@ -90,8 +90,16 @@ KIS_ACCOUNT_PROD: str = _require_env("KIS_ACCOUNT_PROD")  # product code portion
 TELEGRAM_BOT_TOKEN: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
 TELEGRAM_CHAT_ID: str = os.getenv("TELEGRAM_CHAT_ID", "")
 
+# Whether to consult the KIS holiday API. Set to 'false' in .env to skip API
+# and use local holidays logic (recommended for mock environments).
+USE_HOLIDAY_API: bool = os.getenv("USE_HOLIDAY_API", "true").lower() in ("1", "true", "yes")
+
 # ---------------------------------------------------------------------------
 # Cache file paths (inside the package directory)
 # ---------------------------------------------------------------------------
 TOKEN_CACHE_FILE: Path = Path(__file__).resolve().parent / "token_cache.json"
 ORDER_CACHE_FILE: Path = Path(__file__).resolve().parent / "order_cache.json"
+# Optional local holiday list (JSON array of YYYYMMDD strings). If present,
+# `market_data.check_is_holiday` will consult this file when the KIS API is
+# unavailable (or returns an unsupported TR error in the mock environment).
+HOLIDAYS_FILE: Path = Path(__file__).resolve().parent / "holidays.json"

@@ -8,6 +8,7 @@ main.py — 삼성전자 자동매매 시스템 진입점
 import sys
 import threading
 import time
+import select
 
 from trader import AutoTrader
 import market_data
@@ -17,9 +18,21 @@ import config
 
 def _input_listener(trader: AutoTrader) -> None:
     """백그라운드에서 사용자 입력을 대기합니다."""
+    # Use select.select to poll stdin so we can exit immediately when
+    # `trader.stop_event` is set (input() blocks and requires an Enter).
+    stdin = sys.stdin
+    timeout = 0.5  # seconds
     while not trader.stop_event.is_set():
         try:
-            user_input = input().strip()
+            rlist, _, _ = select.select([stdin], [], [], timeout)
+            if not rlist:
+                continue
+
+            line = stdin.readline()
+            if not line:
+                break
+            user_input = line.strip()
+
             if user_input == "종료":
                 print("\n🛑 [시스템 종료] 종료 명령을 수신했습니다. 현재 작업을 마무리하고 안전하게 종료합니다...")
                 trader.stop_event.set()
@@ -38,7 +51,7 @@ def _input_listener(trader: AutoTrader) -> None:
                     print("  ⚠️ [입력 오류] 숫자만 입력해 주세요. (올바른 예시: 스프레드 1000)")
             elif user_input:
                 print("  💡 [안내] 알 수 없는 명령어입니다. '조회', '스프레드 <숫자>', '종료', '도움' 중 하나를 입력해 주세요.")
-        except EOFError:
+        except (EOFError, KeyboardInterrupt):
             break
 
 

@@ -9,8 +9,12 @@ from the KIS Open API (mock trading environment).
 from __future__ import annotations
 
 from auth import TokenManager
-from config import STOCK_CODE
+from config import STOCK_CODE, HOLIDAYS_FILE, USE_HOLIDAY_API
 from logger import setup_logger
+
+import datetime
+import json
+from pathlib import Path
 
 logger = setup_logger("market_data")
 
@@ -84,28 +88,84 @@ def check_is_holiday(token_manager: TokenManager, date_str: str) -> bool:
         "CTX_AREA_FK": ""
     }
 
+    def _is_local_holiday(date_str: str) -> bool:
+        """Local holiday fallback.
+
+        Logic:
+          - Weekends (Sat/Sun) are holidays
+          - If `holidays` package is available, use Korea holidays
+          - Otherwise, if a `HOLIDAYS_FILE` exists, load it (expects list of YYYYMMDD)
+        """
+        try:
+            d = datetime.datetime.strptime(date_str, "%Y%m%d").date()
+        except Exception:
+            logger.debug("Invalid date string provided to local holiday checker: %s", date_str)
+            return False
+
+        # Weekends
+        if d.weekday() >= 5:
+            return True
+
+        # Try python-holidays if available
+        try:
+            import holidays
+
+            kr = holidays.KR()
+            return d in kr
+        except Exception:
+            pass
+
+        # Try local holidays.json file
+        try:
+            p = Path(HOLIDAYS_FILE)
+            if p.exists():
+                arr = json.loads(p.read_text(encoding="utf-8"))
+                return date_str in set(arr)
+        except Exception:
+            pass
+
+        return False
+
     try:
+        # If configured to skip the KIS holiday API, use local fallback directly.
+        if not USE_HOLIDAY_API:
+            logger.info("USE_HOLIDAY_API=false — 휴장일 API 호출을 건너뛰고 로컬 대체 로직을 사용합니다.")
+            return _is_local_holiday(date_str)
+
         headers = token_manager.get_auth_headers(tr_id)
         data = token_manager.api_client.get(
             endpoint, tr_id, params, additional_headers=headers,
         )
 
+        # If KIS indicates the TR is not supported in mock environment,
+        # fall back to local holiday calculation (weekend / local file / holidays lib).
         if data.get("rt_cd") != "0":
-            msg1 = data.get("msg1", "응답 오류")
-            logger.warning("⚠️ [휴장일 조회 실패] 증권사에서 휴장일 정보를 불러오지 못했습니다. (사유: %s) — 기본적으로 영업일로 간주하고 진행합니다.", msg1)
-            return False
+            msg_cd = data.get("msg_cd", "UNKNOWN")
+            msg1 = data.get("msg1", "No message")
+            logger.warning("⚠️ [휴장일 조회 실패] msg_cd=%s msg1=%s — 로컬 대체 로직으로 판단합니다.", msg_cd, msg1)
+            # EGW02006 == "모의투자 TR 이 아닙니다." (mock server doesn't support this TR)
+            return _is_local_holiday(date_str)
 
-        outputs = data.get("output", [])
+        output = data.get("output")
+        if isinstance(output, dict):
+            outputs = [output]
+        elif isinstance(output, list):
+            outputs = output
+        else:
+            logger.warning("⚠️ [휴장일 조회] 예상치 못한 휴장일 응답 형식입니다: %s — 로컬 대체 로직 적용", type(output).__name__)
+            return _is_local_holiday(date_str)
+
         for item in outputs:
+            if not isinstance(item, dict):
+                continue
             if item.get("bass_dt") == date_str:
-                # bzdy_yn == 'Y' (영업일), 'N' (휴장일)
-                # opnd_yn == 'Y' (개장일), 'N' (휴장일)
                 is_business_day = item.get("bzdy_yn", "Y")
                 return is_business_day == "N"
 
-        return False
+        # No matching date in output -> fall back
+        return _is_local_holiday(date_str)
 
     except Exception as exc:
-        logger.error("💥 [시스템 오류] 휴장일 정보를 확인하는 중 문제가 발생했습니다. — 안전을 위해 영업일로 간주하고 진행합니다.")
+        logger.error("💥 [시스템 오류] 휴장일 정보를 확인하는 중 문제가 발생했습니다. — 로컬 대체 로직으로 진행합니다.")
         logger.debug("상세 휴장일 조회 에러 내역: %s", exc, exc_info=True)
-        return False
+        return _is_local_holiday(date_str)
