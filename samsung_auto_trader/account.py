@@ -11,7 +11,7 @@ Provides three functions:
 from __future__ import annotations
 
 from auth import TokenManager
-from config import KIS_ACCOUNT, KIS_ACCOUNT_PROD
+from config import KIS_ACCOUNT, KIS_ACCOUNT_PROD, USE_API_EVAL
 from logger import setup_logger
 
 logger = setup_logger()
@@ -118,16 +118,34 @@ def get_balance(token_manager: TokenManager) -> dict:
             qty = int(item.get("hldg_qty", "0"))
             if qty <= 0:
                 continue  # skip zero-quantity rows
+            avg_price = float(item.get("pchs_avg_pric") or "0")
+            current_price = int(item.get("prpr") or "0")
+            api_eval = int(item.get("evlu_amt") or "0")
+            api_profit = int(item.get("evlu_pfls_amt") or "0")
+
+            # Local re-calculation for cross-checking (current_price * qty)
+            local_eval = current_price * qty
+            # avg_price may be fractional; round to nearest KRW when computing
+            local_profit = int(round(local_eval - (avg_price * qty)))
+
+            # If configured to ignore API evaluation fields, prefer local calc
+            eval_amt = api_eval if USE_API_EVAL else local_eval
+            profit = api_profit if USE_API_EVAL else local_profit
 
             holdings.append(
                 {
                     "code": item.get("pdno", ""),
                     "name": item.get("prdt_name", ""),
                     "qty": qty,
-                    "avg_price": float(item.get("pchs_avg_pric") or "0"),
-                    "current_price": int(item.get("prpr") or "0"),
-                    "eval_amt": int(item.get("evlu_amt") or "0"),
-                    "profit": int(item.get("evlu_pfls_amt") or "0"),
+                    "avg_price": avg_price,
+                    "current_price": current_price,
+                    "eval_amt": eval_amt,
+                    "profit": profit,
+                    # raw API values for debugging
+                    "_api_eval_amt": api_eval,
+                    "_api_profit": api_profit,
+                    "_local_eval_amt": local_eval,
+                    "_local_profit": local_profit,
                 }
             )
 
@@ -141,6 +159,26 @@ def get_balance(token_manager: TokenManager) -> dict:
                 h["code"], h["name"], h["qty"],
                 f"{h['avg_price']:,.0f}", f"{h['profit']:,}",
             )
+            # If there is a meaningful discrepancy between API and local calc,
+            # emit a DEBUG/INFO message to help triage differences seen vs app.
+            try:
+                api_p = h.get("_api_profit")
+                local_p = h.get("_local_profit")
+                if api_p is not None and local_p is not None and api_p != local_p:
+                    # Log small differences at DEBUG, larger ones at INFO
+                    diff = abs(api_p - local_p)
+                    if diff >= 100:
+                        logger.info(
+                            "[account][검증] 종목 %s: API 평가손익=%s원, 로컬 계산=%s원 (차이=%s원)",
+                            h["code"], f"{api_p:,}", f"{local_p:,}", f"{diff:,}",
+                        )
+                    else:
+                        logger.debug(
+                            "[account][검증] 종목 %s: API P/L=%s, local P/L=%s (diff=%s)",
+                            h["code"], api_p, local_p, diff,
+                        )
+            except Exception:
+                pass
 
         return {
             "cash": cash,

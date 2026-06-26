@@ -103,3 +103,7 @@ ORDER_CACHE_FILE: Path = Path(__file__).resolve().parent / "order_cache.json"
 # `market_data.check_is_holiday` will consult this file when the KIS API is
 # unavailable (or returns an unsupported TR error in the mock environment).
 HOLIDAYS_FILE: Path = Path(__file__).resolve().parent / "holidays.json"
+# Whether to trust the KIS account API's evaluation fields (`evlu_amt`,
+# `evlu_pfls_amt`). Set to 'false' to compute evaluation locally from
+# `current_price * qty` (useful for comparing behavior with the mobile app).
+USE_API_EVAL: bool = os.getenv("USE_API_EVAL", "true").lower() in ("1", "true", "yes")

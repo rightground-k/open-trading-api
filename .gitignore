@@ -104,9 +104,6 @@ venv.bak/
 token_cache.json
 order_cache.json
 
-# Logs
-logs/
-
 # IDE / editor
 .vscode/
 .idea/
@@ -132,14 +129,6 @@ cython_debug/
 # ===== mkdocs =====
 /site
 
-# ===== IDE =====
-.vscode/
-.idea/
-*.swp
-*.swo
-*.sublime-project
-*.sublime-workspace
-
 # ===== Node / Frontend =====
 node_modules/
 .next/
@@ -148,12 +137,6 @@ node_modules/
 .pnp.*
 *.tsbuildinfo
 next-env.d.ts
-
-# ===== Environment / Secrets =====
-.env
-.env.local
-.env.*.local
-*.pem
 
 # ===== Logs =====
 *.log
@@ -185,8 +168,3 @@ backtester/examples/output/*.yaml
 backtester/examples/output/*.py
 !backtester/examples/output/.gitkeep
 !backtester/examples/output/reports/.gitkeep
-
-# ===== Claude settings =====
-settings.local.json
-
-.serena/
